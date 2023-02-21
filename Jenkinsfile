@@ -49,22 +49,24 @@ pipeline {
         stage ('Upload for testing') {
             agent {
                 dockerfile {
-                    filename '/vagrant/final/dockerfile-alpine'
+                    filename 'dockerfile-alpine'
+                    args '--network vagrant_default'
+                    
                 }
             }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'nexus_password', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD')]) {
                     sh '''
-                        curl -u ${NEXUS_USER}:${NEXUS_PASSWORD} -X GET "http://nexus:8081/repository/${NEXUS_REPO}/${BRANCH}/word-cloud-generator/1.${BUILD_NUMBER}/word-cloud-generator-1.${BUILD_NUMBER}.gz"  -o /opt/wordcloud/word-cloud-generator.gz"
+                        curl -u ${NEXUS_USER}:${NEXUS_PASSWORD} -X GET "http://nexus:8081/repository/${NEXUS_REPO}/${BRANCH}/word-cloud-generator/1.${BUILD_NUMBER}/word-cloud-generator-1.${BUILD_NUMBER}.gz"  -o /opt/wordcloud/word-cloud-generator.gz
+                        sleep 10
                         gunzip -f /opt/wordcloud/word-cloud-generator.gz;chmod +x /opt/wordcloud/word-cloud-generator; sudo systemctl start wordcloud
                         sleep 10
-                        res=`curl -s -H "Content-Type: application/json" -d '{"text":"ths is a really really really important thing this is"}' http://localhost:8888/version 
-| jq '. | length'`
+                        res=`curl -s -H "Content-Type: application/json" -d '{"text":"ths is a really really really important thing this is"}' http://alpine:8888/version | jq '. | length'`
                         if [ "1" != "$res" ]; then
                         exit 99
                         fi
 
-                        res=`curl -s -H "Content-Type: application/json" -d '{"text":"ths is a really really really important thing this is"}' http://localhost:8888/api | jq '. | length'`
+                        res=`curl -s -H "Content-Type: application/json" -d '{"text":"ths is a really really really important thing this is"}' http://alpine:8888/api | jq '. | length'`
                         if [ "7" != "$res" ]; then
                         exit 99
                         fi'''
